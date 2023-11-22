@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+README.md
+*.env
+*.gitignore
+migrations
+seeds
+documentation
+_DR
+_DC
+yml
+yml_sit
+Jenkinsfile*
+docs
+*.localdb
+uploads/
+src/dev.js
