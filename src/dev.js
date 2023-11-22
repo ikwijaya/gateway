@@ -5,6 +5,8 @@ const app = express();
 const http = require("http");
 const https = require("https");
 const path = require("path");
+const swaggerUI = require("swagger-ui-express");
+const swaggerSpec = require('./swagger.json')
 
 // set max
 // https://stackabuse.com/6-easy-ways-to-speed-up-express/
@@ -28,7 +30,7 @@ const authenticate = async () => {
 const ConsumerController = require("./controller/consumerController");
 const brokerBootstrap = async () => {
   try {
-    const consumerController = new ConsumerController("summary.queue")
+    const consumerController = new ConsumerController("summary.queue");
     return await consumerController.run().catch((e) => {
       throw e;
     });
@@ -40,6 +42,7 @@ const brokerBootstrap = async () => {
 authenticate();
 brokerBootstrap();
 app.use("/", express.static(path.join(__dirname, "template")));
+app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec, { explorer: true }))
 app.use(require("./v1"));
 app.listen(process.env.PORT || PORT, function () {
   console.log(

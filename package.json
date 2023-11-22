@@ -27,7 +27,9 @@
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "retry": "^0.13.1",
-    "sequelize": "^6.35.0"
+    "sequelize": "^6.35.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",
