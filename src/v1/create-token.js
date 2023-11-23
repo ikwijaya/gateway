@@ -3,6 +3,7 @@ const { resFail, resOK } = require("../helper");
 const sequelize = require('../db')
 const TokenController = require('../controller/tokenController')
 const { defaultMiddleware } = require("../middleware");
+const httpStatus = require('http-status')
 
 app.get(
   "/create-token",
@@ -16,9 +17,9 @@ app.get(
       const tokenController = new TokenController(trx, channel)
       const accessToken = await tokenController.create().catch(e => { throw(e) })
 
-      res.status(200).send(resOK([], accessToken));
+      res.status(httpStatus.OK).send(resOK([], accessToken));
     } catch (err) {
-      res.status(200).send(resFail([err.toString()]));
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }
   }
 );

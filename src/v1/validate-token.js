@@ -1,6 +1,7 @@
 const app = require("express").Router();
 const { resFail, resOK } = require("../helper");
 const { afterLoginMiddleware } = require("../middleware");
+const httpStatus = require('http-status')
 
 app.get(
   "/:channel_name?/validate-token",
@@ -8,9 +9,9 @@ app.get(
   afterLoginMiddleware.validate,
   async (req, res, next) => {
     try {
-      res.status(200).send(resOK([], { isToken: req.body.isToken }));
+      res.status(httpStatus.OK).send(resOK([], { isToken: req.body.isToken }));
     } catch (err) {
-      res.status(200).send(resFail([err.toString()]));
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }
   }
 );

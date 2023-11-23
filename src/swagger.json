@@ -35,7 +35,7 @@
                 "parameters": [
                     {
                         "name": "app-id",
-                        "description": "Enter application id: e.g. 334f8fbdeabcd2781b00ba1f577fb3c8192d12c6de4bdc91b9d83951a6971680",
+                        "description": "Enter application id: e.g. xxxxxx",
                         "in": "header",
                         "required": true,
                         "schema": {
@@ -45,10 +45,16 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/response/CreateToken"
+                        }
                     },
                     "500": {
-                        "description": "Internal Server Error"
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/response/HeaderError"
+                        }
                     }
                 }
             }
@@ -80,10 +86,16 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/response/TokenValidation"
+                        }
                     },
                     "500": {
-                        "description": "Internal Server Error"
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/response/HeaderError"
+                        }
                     }
                 }
             }
@@ -149,13 +161,132 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/response/Default"
+                        }
                     },
-                    "400": {
-                        "description": "Internal Server Error"
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/response/HeaderError"
+                        }
                     }
                 }
             }
+        }
+    },
+    "response": {
+        "Default": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "default": "Message success"
+                    }
+                },
+                "color": {
+                    "type": "string",
+                    "default": "green darken-1"
+                },
+                "payload": {
+                    "type": "object"
+                }
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+        "CreateToken": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "default": "xxxxxxx"
+                    }
+                },
+                "color": {
+                    "type": "string",
+                    "default": "green darken-1"
+                },
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "accessToken": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+        "TokenValidation": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "default": "Message success"
+                    }
+                },
+                "color": {
+                    "type": "string",
+                    "default": "green darken-1"
+                },
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "isToken": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                }
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+        "HeaderError": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "default": "Error: xxxxxxx"
+                    }
+                },
+                "color": {
+                    "type": "string",
+                    "default": "red darken-1"
+                },
+                "payload": {
+                    "type": "object"
+                }
+            },
+            "required": [],
+            "additionalProperties": false
         }
     }
 }

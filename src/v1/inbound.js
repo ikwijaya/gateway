@@ -2,6 +2,7 @@ const app = require("express").Router();
 const { resFail, resOK } = require("../helper");
 const { afterLoginMiddleware, inboundMiddleware } = require("../middleware");
 const RouteController = require("../controller/routeController");
+const httpStatus = require('http-status')
 
 app.post(
   "/:channel_name?/inbound/:action?",
@@ -37,15 +38,17 @@ app.post(
           },
           action: route.url_path,
           token: accessToken,
+          channelName: channel.name
         })
         .log();
       await routeController.send().catch((e) => {
-        throw e;
+        console.log(e)
+        throw e
       });
 
-      res.status(200).send(resOK([]));
+      res.status(httpStatus.OK).send(resOK([]));
     } catch (err) {
-      res.status(200).send(resFail([err.toString()]));
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }
   }
 );

@@ -6,7 +6,7 @@ module.exports = {
     queue = null,
     value = null,
     durable = true,
-    ms = 250,
+    ms = 1000,
     attempt = 5
   ) => {
     let conn;
@@ -63,7 +63,7 @@ module.exports = {
     queue = null,
     callback = null,
     durable = true,
-    ms = 250,
+    ms = 1000,
     attempt = null
   ) => {
     try {
@@ -151,6 +151,7 @@ module.exports = {
         },
         action: { type: "string" },
         token: { type: "string" },
+        channelName: { type: "string" },
 
         /// from req external req.body
         reqId: { type: "string" },
@@ -159,7 +160,15 @@ module.exports = {
         response: { type: "object" },
         info: { type: "object" },
       },
-      required: ["reqId", "timestamp", "param", "webhook", "action", "token"],
+      required: [
+        "reqId",
+        "timestamp",
+        "param",
+        "webhook",
+        "action",
+        "token",
+        "channelName",
+      ],
       additionalProperties: false,
     };
   },

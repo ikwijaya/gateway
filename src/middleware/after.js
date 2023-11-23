@@ -75,6 +75,7 @@ const isChannel = async (value, { req }) => {
           "webhook",
           "webhook_key",
           "webhook_value",
+          "name"
         ],
         where: { record_status: "A", name: value },
       })

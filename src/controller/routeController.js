@@ -37,7 +37,7 @@ class RouteController {
 
       return this
     } catch (error) {
-      throw error
+      throw error;
     }
   }
 
@@ -73,10 +73,8 @@ class RouteController {
           validate.errors.map((e) => `${e.dataPath} ${e.message}`)
         );
 
-      //// send data to publisher
-      console.log('PUB => ', object)
-      return await rabbitPub(queue, object).catch((e) => {
-        throw e;
+      return await rabbitPub(queue, object).catch((error) => {
+        throw error;
       });
     } catch (error) {
       throw error;
