@@ -93,7 +93,7 @@ class RouteController {
       if (!valid) console.log(validate.errors);
       if (!valid)
         throw new Error(
-          validate.errors.map((e) => `${e.dataPath} ${e.message}`)
+          validate.errors.map((e) => `param ${e.dataPath} ${e.message}`)
         );
 
       return await rabbitPub(queue, object).catch((error) => {
