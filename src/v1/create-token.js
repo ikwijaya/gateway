@@ -13,8 +13,9 @@ app.get(
     try {
       const { channel } = req.body;
       
+      const expiresIn = channel.expires_in;
       const trx = await sequelize.transaction().catch(e => { throw(e) })
-      const tokenController = new TokenController(trx, channel)
+      const tokenController = new TokenController(trx, channel, expiresIn ? expiresIn : "6h")
       const accessToken = await tokenController.create().catch(e => { throw(e) })
 
       res.status(httpStatus.OK).send(resOK([], accessToken));

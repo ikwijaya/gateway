@@ -15,6 +15,7 @@ module.exports = (sq) => {
       
       app_key: DataTypes.STRING,
       secret_key: DataTypes.STRING,
+      expires_in: DataTypes.STRING,
       
       webhook: DataTypes.STRING,
       webhook_key: DataTypes.STRING,

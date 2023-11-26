@@ -1,9 +1,10 @@
 const { models } = require("../db");
+const { Op } = require("sequelize");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
 class TokenController {
-  constructor(trx = null, channel, expiresIn = '1800m') {
+  constructor(trx = null, channel, expiresIn = "6h") {
     this.trx = trx;
     this.channel = channel;
     this.expiresIn = expiresIn;
@@ -24,17 +25,23 @@ class TokenController {
       };
 
       /// disable active-token before create new one
-      await models.token
-        .update(
-          { record_status: "N", umodified: id, dmodified: new Date() },
-          {
-            transaction: this.trx,
-            where: { channel_id: id, record_status: "A" },
-          }
-        )
-        .catch((e) => {
-          throw e;
-        });
+      /// only active when expiresIn is not null
+      if (this.expiresIn)
+        await models.token
+          .update(
+            { record_status: "N", umodified: id, dmodified: new Date() },
+            {
+              transaction: this.trx,
+              where: {
+                channel_id: id,
+                record_status: "A",
+                expires_in: { [Op.ne]: null },
+              },
+            }
+          )
+          .catch((e) => {
+            throw e;
+          });
 
       await models.token
         .create(object, { transaction: this.trx })
@@ -46,7 +53,7 @@ class TokenController {
       return {
         accessToken: jwt.sign({ accessToken, channelId: id }, secret_key, {
           expiresIn: this.expiresIn,
-        }),
+        },),
       };
     } catch (error) {
       await this.trx.rollback();
@@ -55,4 +62,4 @@ class TokenController {
   }
 }
 
-module.exports = TokenController
+module.exports = TokenController;

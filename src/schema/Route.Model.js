@@ -37,7 +37,12 @@ module.exports = (sq) => {
       url_path: DataTypes.STRING,
       exchange: DataTypes.STRING,
       queue: DataTypes.STRING,
-      file_schema: DataTypes.STRING,
+      schema: DataTypes.TEXT,
+      from_schema: {
+        type: DataTypes.ENUM('file','json','api'),
+        defaultValue: 'json'
+      },
+
       dcreate: {
         type: DataTypes.DATE,
         allowNull: false,

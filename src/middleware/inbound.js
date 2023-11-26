@@ -29,7 +29,14 @@ const isAction = async (value, { req }) => {
     const { channel_id } = req.body.channel;
     const route = await models.route
       .findOne({
-        attributes: ["route_id", "exchange", "queue", "file_schema", "url_path"],
+        attributes: [
+          "route_id",
+          "exchange",
+          "queue",
+          "schema",
+          "from_schema",
+          "url_path",
+        ],
         include: [
           {
             required: true,

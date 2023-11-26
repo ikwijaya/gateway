@@ -31,7 +31,7 @@ const isAppID = async (value, { req }) => {
     /// check value in database
     const channel = await models.channel
       .findOne({
-        attributes: ["channel_id", "name", "secret_key"],
+        attributes: ["channel_id", "name", "secret_key", "expires_in"],
         where: { app_key: value, record_status: "A" },
       })
       .catch((e) => {

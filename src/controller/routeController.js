@@ -2,7 +2,9 @@ const { rabbitPub, rabbitSchema } = require("../broker");
 const { ROUTE_SCHEMA_PATH } = require("../config");
 const Ajv = require("ajv");
 const fs = require("fs");
+const axios = require("axios").default;
 
+//// route.from_schema = ['file', 'json', 'api']
 class RouteController {
   constructor(trx = null, route) {
     this.trx = trx;
@@ -21,7 +23,7 @@ class RouteController {
         throw new Error(
           validate.errors.map((e) => `${e.dataPath} ${e.message}`)
         );
-        
+
       this.object = object;
       return this;
     } catch (error) {
@@ -31,11 +33,11 @@ class RouteController {
 
   log() {
     try {
-      const info = {}
-      info[this.route.queue] = new Date() 
-      this.object['info'] = info
+      const info = {};
+      info[this.route.queue] = new Date();
+      this.object["info"] = info;
 
-      return this
+      return this;
     } catch (error) {
       throw error;
     }
@@ -49,18 +51,39 @@ class RouteController {
     try {
       const ajv = new Ajv();
       const queue = this.route.queue;
+      const schemaFrom = this.route.from_schema;
+      const schemaValue = this.route.schema;
       const exchange = this.route.exchange;
       const object = this.object;
+      let schema = null;
 
       if (!object) throw new Error("No request body to be send");
-      if (!fs.existsSync(ROUTE_SCHEMA_PATH)) fs.mkdirSync(ROUTE_SCHEMA_PATH);
-      const schema = fs.readFileSync(
-        ROUTE_SCHEMA_PATH + this.route.file_schema,
-        {
-          encoding: "utf8",
-          flag: "r",
-        }
-      );
+      if (!schemaValue) throw new Error(`Schema/Model not found`);
+      switch (schemaFrom) {
+        case "file":
+          if (!fs.existsSync(ROUTE_SCHEMA_PATH))
+            fs.mkdirSync(ROUTE_SCHEMA_PATH);
+          schema = fs.readFileSync(ROUTE_SCHEMA_PATH + schemaValue, {
+            encoding: "utf8",
+            flag: "r",
+          });
+          break;
+
+        case "json":
+          schema = schemaValue;
+          break;
+
+        case "api":
+          const res = await axios.get(schemaValue).catch((e) => {
+            throw e;
+          });
+          schema = res.status == 200 ? res.data : null;
+          if (typeof schema === "object") schema = JSON.stringify(schema);
+          break;
+
+        default:
+          break;
+      }
 
       if (!schema) throw new Error(`Schema not found`);
       const validate = ajv.compile(JSON.parse(schema));
