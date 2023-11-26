@@ -1,11 +1,21 @@
 const express = require("express");
-const { NODE_ENV, PORT, APP_NAME, SQ_LOG, LOG_ROTATE_ROUTE_PATH, LOG_ROTATE_PERIOD, SWAGGER_OPTS } = require("../config");
+const {
+  NODE_ENV,
+  PORT,
+  APP_NAME,
+  SQ_LOG,
+  LOG_ROTATE_ROUTE_PATH,
+  LOG_ROTATE_PERIOD,
+  RMQ_CONSUMER_QUEUE
+} = require("../config");
 const compression = require("compression");
 const app = express();
 const http = require("http");
 const https = require("https");
 const bunyan = require("bunyan");
-const { encryptText } = require('../helper')
+const { encryptText } = require("../helper");
+const swaggerUI = require("swagger-ui-express");
+const swaggerSpec = require("../swagger.json");
 const log = bunyan.createLogger({
   name: APP_NAME,
   serializers: bunyan.stdSerializers,
@@ -33,19 +43,32 @@ const sequelize = require("../db");
 const authenticate = async () => {
   try {
     await sequelize.authenticate();
-    console.log("🚀 yey! your database is connected to me.");
+    console.log("🚀 yey! your database is connected to me.", new Date());
   } catch (err) {
-    console.error("sorry, something wrong with your connection: ", err);
-    throw new Error(`sorry, something wrong with your connection: , ${err}`);
+    console.error("DB => ", JSON.stringify(err.original), new Date());
+    setTimeout(authenticate,2000)
+  }
+};
+
+const ConsumerController = require("../controller/consumerController");
+const brokerBootstrap = async () => {
+  try {
+    const consumerController = new ConsumerController(RMQ_CONSUMER_QUEUE);
+    return await consumerController.run().catch((e) => {
+      throw e;
+    });
+  } catch (error) {
+    throw error;
   }
 };
 
 authenticate();
+brokerBootstrap();
 app.use((req, res, next) => {
   res.on("finish", () => {
     const qq = req;
     delete qq.headers.authorization;
-    delete qq.headers['access-token'];
+    delete qq.headers["access-token"];
 
     if (SQ_LOG == "1") {
       log.info({
@@ -54,11 +77,10 @@ app.use((req, res, next) => {
           method: qq.method,
           baseUrl: qq.baseUrl,
           originalUrl: qq.originalUrl,
-          headers: qq.baseUrl == "/v1/auth/login" ? {} : qq.headers,
-          params: qq.baseUrl == "/v1/auth/login" ? {} : qq.params,
-          query: qq.baseUrl == "/v1/auth/login" ? {} : qq.query,
-          body: qq.baseUrl == "/v1/auth/login" ? {} : encryptText(JSON.stringify(qq.body)),
-          ldap: qq.baseUrl == "/v1/auth/login" ? qq.ldap_object : {},
+          headers: encryptText(qq.headers),
+          params: encryptText(qq.params),
+          query: encryptText(qq.query),
+          body: encryptText(qq.body),
         },
       });
     }
@@ -66,7 +88,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(require("../v1"));
-
+app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec, { explorer: true }))
 app.listen(process.env.PORT || PORT, function () {
   console.log(
     `🚀 application running in port ${PORT}`,
@@ -81,4 +103,3 @@ function shouldCompress(req, res) {
 
   return compression.filter(req, res);
 }
-

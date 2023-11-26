@@ -1,5 +1,5 @@
 const express = require("express");
-const { PORT } = require("./config");
+const { PORT, RMQ_CONSUMER_QUEUE } = require("./config");
 const compression = require("compression");
 const app = express();
 const http = require("http");
@@ -20,17 +20,17 @@ const sequelize = require("./db");
 const authenticate = async () => {
   try {
     await sequelize.authenticate();
-    console.log("🚀 yey! your database is connected to me.");
+    console.log("🚀 yey! your database is connected to me.", new Date());
   } catch (err) {
-    console.error("sorry, something wrong with your connection: ", err);
-    throw new Error(`sorry, something wrong with your connection: , ${err}`);
+    console.error("DB => ", JSON.stringify(err.original), new Date());
+    setTimeout(authenticate,2000)
   }
 };
 
 const ConsumerController = require("./controller/consumerController");
 const brokerBootstrap = async () => {
   try {
-    const consumerController = new ConsumerController("summary.queue");
+    const consumerController = new ConsumerController(RMQ_CONSUMER_QUEUE);
     return await consumerController.run().catch((e) => {
       throw e;
     });

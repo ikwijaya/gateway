@@ -20,7 +20,7 @@ module.exports = {
         return await amq
           .connect(RMQ_CONNECTION + "?heartbeat=60")
           .then(async (connection) => {
-            console.log(`PUB => connection established - `, new Date());
+            console.log(`PUB => 🚀 yey! connection established - `, new Date());
             connection.on("error", function (err) {
               console.log(
                 `PUB => connection error: `,
@@ -76,7 +76,7 @@ module.exports = {
         return await amq
           .connect(RMQ_CONNECTION + "?heartbeat=60")
           .then(async (connection) => {
-            console.log(`SUB => connection established - `, new Date());
+            console.log(`SUB => 🚀 yey! connection established - `, new Date());
             connection.on("error", function (err) {
               console.log(
                 `SUB => connection error: `,

@@ -47,6 +47,9 @@ module.exports = {
    * RABBIT-MQ
    */
   RMQ_CONNECTION: cfg.RMQ_CONNECTION,
+  RMQ_CONSUMER_QUEUE: cfg.RMQ_CONSUMER_QUEUE,
+  RMQ_FALLBACK_QUEUE: cfg.RMQ_FALLBACK_QUEUE,
+  
 
   /**
    * LOG ROTATE
@@ -59,33 +62,6 @@ module.exports = {
    * CHANNEL SCHEMA
    */
   ROUTE_SCHEMA_PATH: cfg.ROUTE_SCHEMA_PATH,
-
-  /**
-   * SWAGGER OPTIONS
-   */
-  SWAGGER_OPTS: {
-    swaggerDefinition: {
-      info: {
-        description: "This is documentation for GET data from API",
-        title: null,
-        version: "1.0.0",
-      },
-      host: "localhost:"+cfg.NODE_ENV,
-      basePath: "/v1",
-      produces: ["application/json"],
-      schemes: ["http", "https"],
-      securityDefinitions: {
-        "CIMB-APIKEY": {
-          type: "apiKey",
-          in: "header",
-          name: "CIMB-APIKEY",
-          description: "",
-        },
-      },
-    },
-    basedir: __dirname, //app absolute path
-    files: ["../routes/**/*.js"], //Path to the API handle folder
-  },
 
   ///// default wording
   WORDING: {
