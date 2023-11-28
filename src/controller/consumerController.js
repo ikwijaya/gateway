@@ -1,6 +1,6 @@
 const { rabbitSub, rabbitPub } = require("../broker");
 const axios = require("axios").default;
-const { resOK } = require("../helper");
+const { resOK, logger } = require("../helper");
 const retry = require("retry");
 
 // https://www.npmjs.com/package/retry
@@ -9,8 +9,8 @@ class consumerController {
     this.queue = queue;
     this.exchange = exchange;
     this.config = {
-      retries: 3,
-      factor: 2,
+      retries: 2,
+      factor: 1,
       minTimeout: 1 * 1000,
       maxTimeout: 60 * 1000,
       randomize: true,
@@ -22,12 +22,13 @@ class consumerController {
   async run() {
     try {
       const queue = this.queue;
-      return await rabbitSub(queue, async (object) => {
+      return await rabbitSub(queue, async (object, channel, value) => {
         const content = object.content;
         const parse = content ? JSON.parse(content) : null;
 
         if (content && parse && typeof parse === "object") {
           const webhook = parse.webhook;
+          const info = `${parse["channelName"]}/${parse["action"]}/${parse["reqId"]}`;
 
           delete parse["token"];
           delete parse["webhook"];
@@ -39,20 +40,34 @@ class consumerController {
 
           /// retry when wehbooks is no-response
           this.operation.attempt(async (currentAttempt) => {
-            console.log(
-              `attempt ${currentAttempt} from ${this.config.retries} times`
-            );
+            if (currentAttempt > this.config.retries) {
+              let obj = JSON.parse(content);
+              obj["info"]["retry." + queue] = new Date();
+              obj = JSON.stringify(obj);
 
-            if (currentAttempt > this.config.retries)
-              return await rabbitPub('retry.'+queue, content);
+              await channel
+                .assertQueue("retry." + queue)
+                .then(async () => {
+                  return await channel.sendToQueue(
+                    "retry." + queue,
+                    Buffer.from(obj)
+                  );
+                })
+                .catch((e) => {
+                  throw e;
+                });
+              logger(
+                "WEBHOOK",
+                `[${info}] attempts reached (${this.config.retries})`
+              );
+            }
 
             try {
-              return await axios.post(webhook.url, body, { headers: headers });
+              return await axios
+                .post(webhook.url, body, { headers: headers })
+                .then((res) => logger(`WEBHOOK`, res.status, JSON.stringify(res.data)));
             } catch (error) {
-              if (this.operation.retry(error)) {
-                console.log(`Error webhook`, error.stack);
-                return;
-              }
+              if (this.operation.retry(error)) return;
             }
           });
         }

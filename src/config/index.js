@@ -13,6 +13,7 @@ module.exports = {
   SECRET_KEY: cfg.SECRET_KEY,
   IMAGE_URI: cfg.IMAGE_URI,
   CROSS_ORIGIN: split(cfg.CROSS_ORIGIN,','),
+  WHITELIST_IP: split(cfg.WHITELIST_IP),
   
   /**
    * Security
@@ -49,6 +50,7 @@ module.exports = {
   RMQ_CONNECTION: cfg.RMQ_CONNECTION,
   RMQ_CONSUMER_QUEUE: cfg.RMQ_CONSUMER_QUEUE,
   RMQ_FALLBACK_QUEUE: cfg.RMQ_FALLBACK_QUEUE,
+  RMQ_SHOVEL_CREDENTIAL: cfg.RMQ_SHOVEL_CREDENTIAL,
   
 
   /**

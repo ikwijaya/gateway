@@ -1,12 +1,14 @@
 const express = require("express");
-const { PORT, RMQ_CONSUMER_QUEUE } = require("./config");
+const { PORT, RMQ_CONSUMER_QUEUE, WHITELIST_IP } = require("./config");
 const compression = require("compression");
 const app = express();
 const http = require("http");
 const https = require("https");
 const path = require("path");
 const swaggerUI = require("swagger-ui-express");
-const swaggerSpec = require('./swagger.json')
+const swaggerSpec = require("./swagger.json");
+const { IpDeniedError, IpFilter } = require("express-ipfilter");
+const { customIpDetection, resFail } = require("./helper");
 
 // set max
 // https://stackabuse.com/6-easy-ways-to-speed-up-express/
@@ -23,7 +25,7 @@ const authenticate = async () => {
     console.log("🚀 yey! your database is connected to me.", new Date());
   } catch (err) {
     console.error("DB => ", JSON.stringify(err.original), new Date());
-    setTimeout(authenticate,2000)
+    setTimeout(authenticate, 2000);
   }
 };
 
@@ -41,9 +43,27 @@ const brokerBootstrap = async () => {
 
 authenticate();
 brokerBootstrap();
+app.use(
+  IpFilter(WHITELIST_IP, {
+    mode: "allow",
+    logLevel: "deny",
+    excluding: ["/docs", "/v1"],
+    detectIp: customIpDetection,
+  })
+);
+
 app.use("/", express.static(path.join(__dirname, "template")));
-app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec, { explorer: true }))
+app.use(
+  "/docs",
+  swaggerUI.serve,
+  swaggerUI.setup(swaggerSpec, { explorer: true })
+);
 app.use(require("./v1"));
+
+app.get("/schema", (req, res, next) => {
+  res.send(require("../route-schema/summary-text.json"));
+});
+
 app.listen(process.env.PORT || PORT, function () {
   console.log(
     `🚀 application running in port ${PORT}`,

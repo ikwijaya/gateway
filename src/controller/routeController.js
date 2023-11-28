@@ -3,6 +3,7 @@ const { ROUTE_SCHEMA_PATH } = require("../config");
 const Ajv = require("ajv");
 const fs = require("fs");
 const axios = require("axios").default;
+const { logger } = require("../helper");
 
 //// route.from_schema = ['file', 'json', 'api']
 class RouteController {
@@ -18,7 +19,7 @@ class RouteController {
       const validate = ajv.compile(rabbitSchema());
       const valid = validate(object);
 
-      if (!valid) console.log(validate.errors);
+      if (!valid) logger(`ROUTE`, `validate`, validate.errors);
       if (!valid)
         throw new Error(
           validate.errors.map((e) => `${e.dataPath} ${e.message}`)
@@ -90,7 +91,7 @@ class RouteController {
       const param = object.param;
       const valid = validate(param);
 
-      if (!valid) console.log(validate.errors);
+      if (!valid) logger(`ROUTE`, `send`, validate.errors);
       if (!valid)
         throw new Error(
           validate.errors.map((e) => `param ${e.dataPath} ${e.message}`)

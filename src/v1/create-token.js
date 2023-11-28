@@ -18,7 +18,7 @@ app.get(
       const tokenController = new TokenController(trx, channel, expiresIn ? expiresIn : "6h")
       const accessToken = await tokenController.create().catch(e => { throw(e) })
 
-      res.status(httpStatus.OK).send(resOK([], accessToken));
+      res.status(httpStatus.OK).send(resOK([`Success`], accessToken));
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }

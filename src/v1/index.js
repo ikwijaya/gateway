@@ -22,5 +22,11 @@ app.use(
 app.use("/v1", require("./create-token"));
 app.use("/v1", require("./validate-token"));
 app.use("/v1", require("./inbound"));
+app.use("/v1", require("./shovel-run"));
+app.use("/v1", require("./shovel-delete"));
+app.use("/v1", require("./shovel-check"));
+app.use("/v1", require("./shovel-restart"));
+
+app.use("/v1", require("./response-create"));
 
 module.exports = app;

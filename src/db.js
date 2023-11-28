@@ -50,7 +50,7 @@ const sq = new Sequelize(DB_URL, {
 const df = [
   require("./schema/Access.Model"),
   require("./schema/Channel.Model"),
-  require("./schema/Route.Model"),
+  require("./schema/Response.Model"),
   require("./schema/Route.Model"),
   require("./schema/Token.Model"),
 ];

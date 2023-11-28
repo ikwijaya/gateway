@@ -1,7 +1,27 @@
 const crypto = require("crypto");
-const { CIPHER_IV, CIPHER_KEY, CIPHER_ALGO } = require("../config");
+const { CIPHER_IV, CIPHER_KEY, CIPHER_ALGO, NODE_ENV } = require("../config");
 
 module.exports = {
+  logger: (g = null, t = null, err = null) => {
+    if (!["prod", "production"].includes(NODE_ENV)) {
+      if (!err) console.log(g, "->", t, " @ ", new Date());
+      else {
+        console.table([
+          {
+            group: g,
+            comment: t,
+            stack: err,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    }
+  },
+
+  customIpDetection: (req) => {
+    let ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    return ip.replace("::ffff:", "");
+  },
   resFail: (msg = [], payload = null) => {
     return {
       success: false,

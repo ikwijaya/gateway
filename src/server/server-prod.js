@@ -6,14 +6,15 @@ const {
   SQ_LOG,
   LOG_ROTATE_ROUTE_PATH,
   LOG_ROTATE_PERIOD,
-  RMQ_CONSUMER_QUEUE
+  RMQ_CONSUMER_QUEUE,
+  WHITELIST_IP,
 } = require("../config");
 const compression = require("compression");
 const app = express();
 const http = require("http");
 const https = require("https");
 const bunyan = require("bunyan");
-const { encryptText } = require("../helper");
+const ipFilter = require("express-ipfilter").IpFilter;
 const swaggerUI = require("swagger-ui-express");
 const swaggerSpec = require("../swagger.json");
 const log = bunyan.createLogger({
@@ -46,7 +47,7 @@ const authenticate = async () => {
     console.log("🚀 yey! your database is connected to me.", new Date());
   } catch (err) {
     console.error("DB => ", JSON.stringify(err.original), new Date());
-    setTimeout(authenticate,2000)
+    setTimeout(authenticate, 2000);
   }
 };
 
@@ -77,18 +78,20 @@ app.use((req, res, next) => {
           method: qq.method,
           baseUrl: qq.baseUrl,
           originalUrl: qq.originalUrl,
-          headers: encryptText(qq.headers),
-          params: encryptText(qq.params),
-          query: encryptText(qq.query),
-          body: encryptText(qq.body),
         },
       });
     }
   });
   next();
 });
+app.use(
+  "/docs",
+  swaggerUI.serve,
+  swaggerUI.setup(swaggerSpec, { explorer: true })
+);
+
+app.use(ipFilter(WHITELIST_IP, { mode: 'allow', logLevel: 'deny' }))
 app.use(require("../v1"));
-app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec, { explorer: true }))
 app.listen(process.env.PORT || PORT, function () {
   console.log(
     `🚀 application running in port ${PORT}`,

@@ -1,5 +1,6 @@
 const amq = require("amqplib");
 const { RMQ_CONNECTION } = require("../config");
+const { logger } = require("../helper");
 
 module.exports = {
   pub: async (
@@ -20,34 +21,35 @@ module.exports = {
         return await amq
           .connect(RMQ_CONNECTION + "?heartbeat=60")
           .then(async (connection) => {
-            console.log(`PUB => 🚀 yey! connection established - `, new Date());
+            logger("PUB", "connected!");
             connection.on("error", function (err) {
-              console.log(
-                `PUB => connection error: `,
-                err.message,
-                " - ",
-                new Date()
-              );
+              logger("PUB", "on error", err.message);
               setTimeout(async () => await run(), ms);
             });
 
-            const channel = await connection.createChannel();
-            await channel.assertQueue(queue, { durable: durable });
-            channel.sendToQueue(queue, Buffer.from(value));
+            const channel = await connection
+              .createConfirmChannel()
+              .catch((e) => {
+                throw e;
+              });
 
-            await channel.close().then(() => connection.close());
+            return await channel
+              .assertQueue(queue, { durable: durable })
+              .then(async () => {
+                channel.sendToQueue(queue, Buffer.from(value), {
+                  persistent: true,
+                });
+                return await channel.close().then(() => connection.close());
+              })
+              .catch((e) => {
+                throw e;
+              });
           })
           .catch((e) => {
-            console.log(
-              `PUB => connection down: attempt ${i} from ${attempt} times`,
-              e.message,
-              " - ",
-              new Date()
-            );
             i = i + 1;
 
             if (i < attempt) setTimeout(async () => await run(), ms);
-            else console.log(`PUB => closed by attempt ${attempt} times`);
+            else logger("PUB", `force close by (${attempt}) attempt!`);
           });
       }
 
@@ -76,60 +78,51 @@ module.exports = {
         return await amq
           .connect(RMQ_CONNECTION + "?heartbeat=60")
           .then(async (connection) => {
-            console.log(`SUB => 🚀 yey! connection established - `, new Date());
+            logger("SUB", "connected!");
             connection.on("error", function (err) {
-              console.log(
-                `SUB => connection error: `,
-                err.message,
-                " - ",
-                new Date()
-              );
+              logger("SUB", "on error", err.message);
               setTimeout(async () => await run(), ms);
             });
 
             connection.on("close", function () {
-              console.log(`SUB => connection close - `, new Date());
+              logger("SUB", "on close");
               setTimeout(async () => await run(), ms);
             });
 
             const channel = await connection.createChannel();
-            await channel.assertQueue(queue, { durable: durable });
-
-            channel.prefetch(1);
-            await channel.consume(
-              queue,
-              (value) => {
-                callback(
-                  {
-                    content: value.content.toString(),
-                    properties: value.properties,
-                    fields: value.fields,
+            return await channel
+              .assertQueue(queue, { durable: durable })
+              .then(async () => {
+                return await channel.consume(
+                  queue,
+                  (value) => {
+                    callback(
+                      {
+                        content: value.content.toString(),
+                        properties: value.properties,
+                        fields: value.fields,
+                      },
+                      channel,
+                      value
+                    );
                   },
-                  true
+                  {
+                    noAck: true,
+                  }
                 );
-              },
-              {
-                noAck: true,
-              }
-            );
+              });
           })
           .catch((e) => {
-            console.log(
-              `SUB => connection down: `,
-              e.message,
-              " - ",
-              new Date()
-            );
-
+            logger("SUB", `on down`, e.message);
             if (attempt && attempt !== 0) {
               if (i < parseInt(attempt))
                 setTimeout(async () => await run(), ms);
-              else console.log(`PUB => closed by attempt ${attempt} times`);
+              else logger("SUB", `force close by (${attempt}) attempt!`);
             } else setTimeout(async () => await run(), ms);
           });
       }
 
-      await run();
+      return await run();
     } catch (error) {
       throw new Error(error);
     }
