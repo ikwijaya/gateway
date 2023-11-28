@@ -10,7 +10,10 @@ module.exports = (sq) => {
         primaryKey: true,
         autoIncrement: true,
       },
-      value: DataTypes.TEXT,
+      status: DataTypes.INTEGER,
+      url: DataTypes.TEXT,
+      req: DataTypes.TEXT,
+      res: DataTypes.TEXT,
       dcreate: {
         type: DataTypes.DATE,
         allowNull: false,

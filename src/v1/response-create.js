@@ -10,7 +10,7 @@ app.post("/response/create", async (req, res, next) => {
   });
   try {
     const values = {
-      value: JSON.stringify(req.body),
+      res: JSON.stringify(req.body),
       dcreate: new Date(),
       record_status: "A",
     };

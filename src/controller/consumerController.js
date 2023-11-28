@@ -65,7 +65,44 @@ class consumerController {
             try {
               return await axios
                 .post(webhook.url, body, { headers: headers })
-                .then((res) => logger(`WEBHOOK`, res.status, JSON.stringify(res.data)));
+                .then(async (res) => {
+                  logger(`WEBHOOK`, res.status, JSON.stringify(res.data));
+                  await channel.assertQueue("logger.queue").then(async () => {
+                    const log = JSON.stringify({
+                      flag: 'outgoing',
+                      url: webhook.url,
+                      req: body,
+                      res: res.data,
+                      status: res.status,
+                      dcreate: new Date(),
+                      record_status: "A",
+                    });
+                    return await channel.sendToQueue(
+                      "logger.queue",
+                      Buffer.from(log)
+                    );
+                  });
+                })
+                .catch(async (err) => {
+                  if (this.operation.retry(err)) return;
+                  return await channel
+                    .assertQueue("logger.queue")
+                    .then(async () => {
+                      const log = JSON.stringify({
+                        flag: 'outgoing',
+                        url: webhook.url,
+                        req: body,
+                        res: err.message,
+                        status: err.status,
+                        dcreate: new Date(),
+                        record_status: "A",
+                      });
+                      return await channel.sendToQueue(
+                        "logger.queue",
+                        Buffer.from(log)
+                      );
+                    });
+                });
             } catch (error) {
               if (this.operation.retry(error)) return;
             }
