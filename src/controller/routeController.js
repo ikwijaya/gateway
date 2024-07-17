@@ -96,7 +96,8 @@ class RouteController {
         throw new Error(
           validate.errors.map((e) => `param ${e.dataPath} ${e.message}`)
         );
-
+      
+      logger(`INBOUND`, `send to mqtt ${queue}`, JSON.stringify(object));
       return await rabbitPub(queue, object).catch((error) => {
         throw error;
       });

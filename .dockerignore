@@ -57,7 +57,7 @@ documentation/*.txt
 documentation/*.png
 uploads/*.log.*
 route-schema/*.json
-.env.*
+.env
 test/*
 yml*/*
 *Jenkinsfile

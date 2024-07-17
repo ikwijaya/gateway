@@ -9,7 +9,8 @@ app.get(
   afterLoginMiddleware.validate,
   async (req, res, next) => {
     try {
-      res.status(httpStatus.OK).send(resOK([], { isToken: req.body.isToken }));
+      const valid = req.body.isToken;
+      res.status(httpStatus.OK).send(resOK([`Token valid`], { isToken: valid }));
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }

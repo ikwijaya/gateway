@@ -51,6 +51,7 @@ class TokenController {
         accessToken: jwt.sign({ accessToken, channelId: id }, secret_key, {
           expiresIn: this.expiresIn,
         }),
+        expiresIn: this.expiresIn
       };
     } catch (error) {
       await this.trx.rollback();

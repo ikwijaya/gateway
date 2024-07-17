@@ -2,6 +2,12 @@ const crypto = require("crypto");
 const { CIPHER_IV, CIPHER_KEY, CIPHER_ALGO, NODE_ENV } = require("../config");
 
 module.exports = {
+  /**
+   * 
+   * @param {*} g = group 
+   * @param {*} t = comment
+   * @param {*} err = stack
+   */
   logger: (g = null, t = null, err = null) => {
     if (!["prod", "production"].includes(NODE_ENV)) {
       if (!err) console.log(g, "->", t, " @ ", new Date());

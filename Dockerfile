@@ -26,10 +26,8 @@ COPY . ${STAGEDIR}
 
 # PREPARE INSTALL AND BUILDING
 RUN rm -rf .git
-RUN npm install -g knex
 RUN npm install
 RUN node -v
-RUN knex --version
 RUN mkdir -p uploads
 RUN npm run buildProd
 

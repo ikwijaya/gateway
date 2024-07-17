@@ -45,6 +45,7 @@ const isJwt = async (value, { req }) => {
           access_token: token.accessToken,
           record_status: "A",
         },
+        group: 'token_id'
       })
       .catch((e) => {
         throw e;
@@ -52,7 +53,7 @@ const isJwt = async (value, { req }) => {
 
     if (isToken == 0) throw new Error();
     req.body.accessToken = token.accessToken;
-    req.body.isToken = isToken > 0;
+    req.body.isToken = isToken.length > 0;
   } catch (error) {
     throw new Error(error.message);
   }
