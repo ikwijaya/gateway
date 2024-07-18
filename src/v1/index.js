@@ -28,5 +28,6 @@ app.use("/v1", require("./shovel-check"));
 app.use("/v1", require("./shovel-restart"));
 
 app.use("/v1", require("./response-create"));
+app.use("/v1", require("./auth"));
 
 module.exports = app;

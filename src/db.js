@@ -52,6 +52,7 @@ const df = [
   require("./schema/Channel.Model"),
   require("./schema/Response.Model"),
   require("./schema/Route.Model"),
+  require("./schema/Session.Model"),
   require("./schema/Token.Model"),
 ];
 
