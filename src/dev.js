@@ -76,17 +76,6 @@ const AuthController = require('./controller/authController')
 function onSocketError(err) { console.error(err) }
 server.on('upgrade', async function (request, socket, head) {
   socket.on('error', onSocketError)
-
-  const trx = await sequelize.transaction().catch(e => { throw (e) })
-  const { agentId } = parseQS(request.url);
-  const authController = new AuthController(trx, agentId)
-  const find = await authController.get().catch(e => { throw e })
-  if (!find) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-    socket.destroy();
-    return;
-  }
-
   socket.removeListener('error', onSocketError)
   /**
    * we emit from the upgrade to connection event
@@ -105,16 +94,15 @@ server.on('upgrade', async function (request, socket, head) {
  * {emit} => {on}
  */
 wss.on('connection', async function (ws, request) {
-  const trx = await sequelize.transaction().catch(e => { throw (e) })
-  const { agentId } = parseQS(request.url);
-  const authController = new AuthController(trx, agentId)
-  await authController.update(ws).catch(e => { throw e })
+  const { agentId, ipAddress } = parseQS(request.url);
+  const authController = new AuthController();
+  await authController.connect(ipAddress, ws).catch(e => { throw e })
 
   /**
    * define events here
    */
   ws.on('error', console.error)
-  ws.on('close', async function () { await authController.destroy().catch(e => { throw e }) })
+  ws.on('close', async function () { await authController.destroy(ipAddress, agentId).catch(e => { throw e }) })
   ws.on('message', function (message) { console.log(`message from ${message} from ${agentId}`) })
 })
 

@@ -1,32 +1,54 @@
 const { models } = require("../db");
-const { Op } = require("sequelize");
 const crypto = require("crypto");
-const dayjs = require('dayjs');
+const sequelize = require('../db')
 
 class AuthController {
-  constructor(trx = null, agentId = null, expiresHour = 6) {
-    this.trx = trx;
-    this.expiresHour = expiresHour;
-    this.agentId = agentId;
+  /**
+   * 
+   * @param {*} agentId 
+   * @param {*} ipAddr 
+   * @returns 
+   */
+  async login(agentId = null, ipAddr = null) {
+    const trx = await sequelize.transaction().catch(e => { throw(e) })
+    try {
+      if (!agentId || !ipAddr) throw { rawMessages: ["Error cannot found IP Address or Agent ID"] }
+      await models.session
+        .update({ user_id: agentId },
+          {
+            where: { ip_addr: ipAddr, record_status: 'A' },
+            transaction: trx
+          })
+        .catch((e) => {
+          throw e;
+        });
+
+      await trx.commit();
+      return { messages: ["OK"], payload: { ipAddr, agentId } }
+    } catch (error) {
+      await trx.rollback();
+      throw error;
+    }
   }
 
   /**
    * 
+   * @param {*} ipAddr 
+   * @param {*} ws 
    * @returns 
    */
-  async login() {
+  async connect(ipAddr = null, ws = null) {
+    const trx = await sequelize.transaction().catch(e => { throw(e) })
     try {
-      const expiresHour = this.expiresHour;
-      const expires = dayjs().add(expiresHour, 'hours');
       const accessToken = crypto.randomBytes(32).toString("hex");
-      const agentId = this.agentId;
+      if (!ipAddr || !ws) throw { rawMessages: ["Error cannot found IP Address or socket Map"] }
 
       //// destroy last login
       await models.session
-        .update({ record_status: 'N' },
+        .update({ record_status: 'N', data: ws },
           {
-            where: { user_id: agentId, record_status: 'A' },
-            transaction: this.trx
+            where: { ip_addr: ipAddr, record_status: 'A' },
+            transaction: trx
           })
         .catch((e) => {
           throw e;
@@ -37,57 +59,32 @@ class AuthController {
         .create({
           dcreate: new Date(),
           token: accessToken,
-          expires: expires,
-          user_id: agentId,
-          record_status: 'A'
-        }, { transaction: this.trx })
+          ip_addr: ipAddr,
+          record_status: 'A',
+          data: ws
+        }, { transaction: trx })
         .catch((e) => {
           throw e;
         });
 
-      await this.trx.commit();
-      return {
-        expiresHour,
-        expires,
-        accessToken,
-        agentId
-      };
+      await trx.commit();
+      return { messages: ["OK"], payload: { ipAddr } }
     } catch (error) {
-      await this.trx.rollback();
+      await trx.rollback();
       throw error;
     }
   }
 
   /**
    * 
+   * @param {*} agentId 
    * @returns 
    */
-  async load() {
-    try {
-      const items = await models.session
-        .findAll({
-          where: { record_status: 'A' },
-          attributes: ['data', 'user_id']
-        })
-        .catch((e) => {
-          throw e;
-        });
-
-      return items;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * 
-   * @returns 
-   */
-  async get() {
+  async getByAgentId(agentId = null) {
     try {
       const items = await models.session
         .findOne({
-          where: { record_status: 'A', user_id: this.agentId },
+          where: { record_status: 'A', user_id: agentId },
           attributes: ['user_id']
         })
         .catch((e) => {
@@ -102,51 +99,50 @@ class AuthController {
 
   /**
    * 
-   * @param {*} ws 
+   * @param {*} ipAddr 
    * @returns 
    */
-  async update(ws) {
+  async getByIpAddr(ipAddr = null) {
     try {
-      const agentId = this.agentId;
-      await models.session
-        .update({ data: ws },
-          {
-            where: { user_id: agentId, record_status: 'A' },
-            transaction: this.trx
-          })
+      const items = await models.session
+        .findOne({
+          where: { record_status: 'A', ip_addr: ipAddr },
+          attributes: ['user_id']
+        })
         .catch((e) => {
           throw e;
         });
 
-      await this.trx.commit();
-      return "OK"
+      return items;
     } catch (error) {
-      await this.trx.rollback();
       throw error;
     }
   }
 
   /**
    * 
+   * @param {*} agentId 
+   * @param {*} ipAddr 
    * @returns 
    */
-  async destroy() {
+  async destroy(agentId = null, ipAddr = null) {
+    const trx = await sequelize.transaction().catch(e => { throw(e) })
     try {
-      const agentId = this.agentId;
+      if (!agentId || !ipAddr) throw { rawMessages: ["Error cannot found IP Address or Agent ID"] }
       await models.session
-        .update({ data: ws, record_status: 'N' },
+        .update({ record_status: 'N' },
           {
-            where: { user_id: agentId, record_status: 'A' },
-            transaction: this.trx
+            where: { user_id: agentId, ip_addr: ipAddr, record_status: 'A' },
+            transaction: trx
           })
         .catch((e) => {
           throw e;
         });
 
-      await this.trx.commit();
-      return "OK"
+      await trx.commit();
+      return { messages: ["OK"], payload: { ipAddr, agentId } }
     } catch (error) {
-      await this.trx.rollback();
+      await trx.rollback();
       throw error;
     }
   }
