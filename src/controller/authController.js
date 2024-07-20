@@ -155,6 +155,27 @@ class AuthController {
       throw error;
     }
   }
+
+  /**
+   * 
+   * @returns 
+   */
+  async loadAll() {
+    try {
+      const items = await models.session
+        .findAll({
+          where: { record_status: 'A' },
+          attributes: ['user_id', 'ip_addr']
+        })
+        .catch((e) => {
+          throw e;
+        });
+
+      return items;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = AuthController;

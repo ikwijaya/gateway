@@ -2,53 +2,84 @@ const AuthController = require('./authController')
 const { parseQS } = require('../helper')
 
 class WSController {
-  constructor(server = null) {
+  constructor(server = null, app = null) {
     this.server = server;
+    this.clients = new Map();
+    this.app = app;
   }
 
   async run(wss = null) {
-    function onSocketError(err) { console.error(err) }
-    this.server.on('upgrade', async function (request, socket, head) {
-      socket.on('error', onSocketError)
-      socket.removeListener('error', onSocketError)
+    try {
+      function onSocketError(err) { console.error(err) }
+      const that = this
+      this.server.on('upgrade', async function (request, socket, head) {
+        socket.on('error', onSocketError)
+        socket.removeListener('error', onSocketError)
+        /**
+         * we emit from the upgrade to connection event
+         * for makesure the user has ws data
+         */
+        wss.handleUpgrade(request, socket, head, async function (ws) {
+          const { ipAddress } = parseQS(request.url);
+
+          if (!ipAddress) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy()
+            return
+          }
+
+          const authController = new AuthController();
+          await authController.connect(ipAddress, ws).catch(e => { throw e })
+
+          const clients = await authController.loadAll().catch(e => { throw e })
+          clients.forEach(e => {
+            const _ipAddress = e.getDataValue('ip_addr')
+            that.clients[_ipAddress] = ws
+          })
+
+          wss.emit('connection', ws, request)
+        })
+      })
+
       /**
-       * we emit from the upgrade to connection event
-       * for makesure the user has ws data
+       * handle when user is starting connection to ws
+       * handle after upgrade
+       * 
+       * life-cycle: send pub with {emit} event, then grab the sub with {on} event
+       * {emit} => {on}
        */
-      wss.handleUpgrade(request, socket, head, async function (ws) {
+      wss.on('connection', async function (ws, request) {
         const { ipAddress } = parseQS(request.url);
         const authController = new AuthController();
-        await authController.connect(ipAddress, ws).catch(e => { throw e })
+        const find = await authController.getByIpAddr(ipAddress).catch(e => { throw e })
+        if (!find) await authController.connect(ipAddress, ws).catch(e => { throw e })
 
-        wss.emit('connection', ws, request, socket)
+        /**
+         * define events here
+         */
+        ws.on('error', console.error)
+        ws.on('close', async function () { delete that.clients[ipAddress] })
+        ws.on('message', function (message) { console.log(`ws.on message : ${message}`)})
+
+        /**
+         * send info, 
+         * for new joiner
+         */
+        for (const key in that.clients) {
+          if (Object.hasOwnProperty.call(that.clients, key)) {
+            const _ws = that.clients[key]
+            if (key !== ipAddress) {
+              _ws.send(JSON.stringify({ senderId: ipAddress, action: 'join', payload: { message: `${ipAddress} has joined` } }))
+            }
+          }
+        }
       })
-    })
-
-    /**
-     * handle when user is starting connection to ws
-     * handle after upgrade
-     * 
-     * life-cycle: send pub with {emit} event, then grab the sub with {on} event
-     * {emit} => {on}
-     */
-    wss.on('connection', async function (ws, request, socket) {
-      const { agentId, ipAddress } = parseQS(request.url);
-      const authController = new AuthController();
-      const find = await authController.getByIpAddr(ipAddress).catch(e => { throw e })
-      if (!find) await authController.connect(ipAddress, ws).catch(e => { throw e })
-
-      /**
-       * define events here
-       */
-      ws.on('error', console.error)
-      ws.on('close', async function () { await authController.destroy(ipAddress, agentId).catch(e => { throw e }) })
-      ws.on('message', function (message) { console.log(`message from ${message} from ${agentId}`) })
-    })
-
-    wss.on('record-start', (bool, { agentId, ipAddress }) => {
-      console.log(`record start`, bool, agentId, ipAddress)
-    })
+    } catch (error) {
+      throw error
+    }
   }
+
+  get() { return this.clients }
 }
 
 module.exports = WSController;

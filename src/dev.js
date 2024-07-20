@@ -18,8 +18,6 @@ const { WebSocketServer } = require('ws')
 const WSController = require('./controller/wsController')
 const server = http.createServer(app)
 const wss = new WebSocketServer({ clientTracking: false, noServer: true })
-const wsController = new WSController(server);
-wsController.run(wss)
 
 // set max
 // https://stackabuse.com/6-easy-ways-to-speed-up-express/
@@ -71,6 +69,9 @@ app.use(
 );
 app.use(require("./v1"));
 
+const wsController = new WSController(server, app);
+wsController.run(wss)
+
 /**
  * online and offline
  */
@@ -87,8 +88,11 @@ app.post(
       const { agentId, ipAddress } = req.body;
       const authController = new AuthController()
       const payload = await authController.login(agentId, ipAddress).catch(e => { throw(e) })
+      const object = { senderId: ipAddress, action: 'online', payload: {} }
 
-      wss.emit('record-start', true, { agentId, ipAddress });
+      const clients = wsController.get();
+      clients[ipAddress].send(JSON.stringify(object))
+
       delete payload.payload.ws;
       res.status(httpStatus.OK).send(payload);
     } catch (err) {
@@ -98,23 +102,23 @@ app.post(
 );
 
 app.post(
-  "/offline",
+  "/v1/offline",
   // defaultMiddleware.rules(),
   // defaultMiddleware.validate,
   async (req, res, next) => {
     try {
       const { agentId, ipAddress } = req.body;
-      const authController = new AuthController()
-      const payload = await authController.destroy(agentId, ipAddress).catch(e => { throw(e) })
+      const object = { senderId: ipAddress, action: 'offline', payload: {} }
 
-      wss.emit('record-stop', false, { agentId, ipAddress });
-      res.status(httpStatus.OK).send(payload);
+      const clients = wsController.get();
+      clients[ipAddress].send(JSON.stringify(object))
+
+      res.status(httpStatus.OK).send({ messages: ['OK'], payload: null });
     } catch (err) {
       res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
     }
   }
 );
-
 
 app.get("/schema", (req, res, next) => {
   res.send(require("../route-schema/summary-text.json"));
