@@ -125,4 +125,22 @@ module.exports = {
       throw error;
     }
   },
+
+  /**
+   * 
+   * @param {*} url 
+   * @returns 
+   */
+  parseQS(url) {
+    const query = url.split('?')[1];
+    const params = {};
+    if (query) {
+      const pairs = query.split('&');
+      for (const pair of pairs) {
+        const [key, value] = pair.split('=');
+        params[decodeURIComponent(key)] = decodeURIComponent(value);
+      }
+    }
+    return params;
+  }
 };

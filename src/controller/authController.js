@@ -10,13 +10,22 @@ class AuthController {
    * @returns 
    */
   async login(agentId = null, ipAddr = null) {
-    const trx = await sequelize.transaction().catch(e => { throw(e) })
+    const trx = await sequelize.transaction().catch(e => { throw (e) })
     try {
       if (!agentId || !ipAddr) throw { rawMessages: ["Error cannot found IP Address or Agent ID"] }
+      const find = await models.session.findOne(
+        {
+          attributes: ['session_id', 'data'],
+          where: { ip_addr: ipAddr, record_status: 'A' },
+          transaction: trx
+        }
+      ).catch(e => { throw e })
+
+      if(!find) throw { rawMessages: ["Error cannot found the socket ready, please re-run the agent"] }
       await models.session
         .update({ user_id: agentId },
           {
-            where: { ip_addr: ipAddr, record_status: 'A' },
+            where: { session_id: find.getDataValue('session_id') },
             transaction: trx
           })
         .catch((e) => {
@@ -24,7 +33,7 @@ class AuthController {
         });
 
       await trx.commit();
-      return { messages: ["OK"], payload: { ipAddr, agentId } }
+      return { messages: ["OK"], payload: { ipAddr, agentId, ws: find.getDataValue('data') } }
     } catch (error) {
       await trx.rollback();
       throw error;
@@ -38,7 +47,7 @@ class AuthController {
    * @returns 
    */
   async connect(ipAddr = null, ws = null) {
-    const trx = await sequelize.transaction().catch(e => { throw(e) })
+    const trx = await sequelize.transaction().catch(e => { throw (e) })
     try {
       const accessToken = crypto.randomBytes(32).toString("hex");
       if (!ipAddr || !ws) throw { rawMessages: ["Error cannot found IP Address or socket Map"] }
@@ -126,7 +135,7 @@ class AuthController {
    * @returns 
    */
   async destroy(agentId = null, ipAddr = null) {
-    const trx = await sequelize.transaction().catch(e => { throw(e) })
+    const trx = await sequelize.transaction().catch(e => { throw (e) })
     try {
       if (!agentId || !ipAddr) throw { rawMessages: ["Error cannot found IP Address or Agent ID"] }
       await models.session

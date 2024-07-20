@@ -10,6 +10,17 @@ const swaggerSpec = require("./swagger.json");
 const { IpDeniedError, IpFilter } = require("express-ipfilter");
 const { customIpDetection, resFail } = require("./helper");
 
+/**
+ * web socket here,
+ * the session is managed by sequelize customs Auth
+ */
+const { WebSocketServer } = require('ws')
+const WSController = require('./controller/wsController')
+const server = http.createServer(app)
+const wss = new WebSocketServer({ clientTracking: false, noServer: true })
+const wsController = new WSController(server);
+wsController.run(wss)
+
 // set max
 // https://stackabuse.com/6-easy-ways-to-speed-up-express/
 http.globalAgent.maxSockets = Infinity;
@@ -60,51 +71,54 @@ app.use(
 );
 app.use(require("./v1"));
 
+/**
+ * online and offline
+ */
+const AuthController = require('./controller/authController')
+const { defaultMiddleware } = require("./middleware");
+const httpStatus = require('http-status')
+
+app.post(
+  "/v1/online",
+  // defaultMiddleware.rules(),
+  // defaultMiddleware.validate,
+  async (req, res, next) => {
+    try {
+      const { agentId, ipAddress } = req.body;
+      const authController = new AuthController()
+      const payload = await authController.login(agentId, ipAddress).catch(e => { throw(e) })
+
+      wss.emit('record-start', true, { agentId, ipAddress });
+      delete payload.payload.ws;
+      res.status(httpStatus.OK).send(payload);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
+    }
+  }
+);
+
+app.post(
+  "/offline",
+  // defaultMiddleware.rules(),
+  // defaultMiddleware.validate,
+  async (req, res, next) => {
+    try {
+      const { agentId, ipAddress } = req.body;
+      const authController = new AuthController()
+      const payload = await authController.destroy(agentId, ipAddress).catch(e => { throw(e) })
+
+      wss.emit('record-stop', false, { agentId, ipAddress });
+      res.status(httpStatus.OK).send(payload);
+    } catch (err) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).send(resFail([err.toString()]));
+    }
+  }
+);
+
+
 app.get("/schema", (req, res, next) => {
   res.send(require("../route-schema/summary-text.json"));
 });
-
-/**
- * web socket here,
- * the session is managed by sequelize customs Auth
- */
-const { WebSocketServer } = require('ws')
-const server = http.createServer(app)
-const wss = new WebSocketServer({ clientTracking: false, noServer: true })
-const AuthController = require('./controller/authController')
-
-function onSocketError(err) { console.error(err) }
-server.on('upgrade', async function (request, socket, head) {
-  socket.on('error', onSocketError)
-  socket.removeListener('error', onSocketError)
-  /**
-   * we emit from the upgrade to connection event
-   * for makesure the user has ws data
-   */
-  wss.handleUpgrade(request, socket, head, function (ws) {
-    wss.emit('connection', ws, request)
-  })
-})
-
-/**
- * handle when user is starting connection to ws
- * handle after upgrade
- * 
- * life-cycle: send pub with {emit} event, then grab the sub with {on} event
- * {emit} => {on}
- */
-wss.on('connection', async function (ws, request) {
-  const { agentId, ipAddress } = parseQS(request.url);
-  const authController = new AuthController();
-  await authController.connect(ipAddress, ws).catch(e => { throw e })
-
-  /**
-   * define events here
-   */
-  ws.on('error', console.error)
-  ws.on('close', async function () { await authController.destroy(ipAddress, agentId).catch(e => { throw e }) })
-  ws.on('message', function (message) { console.log(`message from ${message} from ${agentId}`) })
-})
 
 /// run app
 server.listen(process.env.PORT || PORT, function () {
@@ -120,22 +134,4 @@ function shouldCompress(req, res) {
   if (req.headers["x-no-compression"]) return false;
 
   return compression.filter(req, res);
-}
-
-/**
- * 
- * @param {*} url 
- * @returns 
- */
-function parseQS(url) {
-  const query = url.split('?')[1];
-  const params = {};
-  if (query) {
-    const pairs = query.split('&');
-    for (const pair of pairs) {
-      const [key, value] = pair.split('=');
-      params[decodeURIComponent(key)] = decodeURIComponent(value);
-    }
-  }
-  return params;
 }
