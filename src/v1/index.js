@@ -28,7 +28,5 @@ app.use("/v1", require("./shovel-check"));
 app.use("/v1", require("./shovel-restart"));
 
 app.use("/v1", require("./response-create"));
-// app.use("/v1", require("./online"));
-// app.use("/v1", require('./offline'));
 
 module.exports = app;

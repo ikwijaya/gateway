@@ -28,15 +28,16 @@ class WSController {
             return
           }
 
+          ws.id = ipAddress
           const authController = new AuthController();
           await authController.connect(ipAddress, ws).catch(e => { throw e })
 
-          const clients = await authController.loadAll().catch(e => { throw e })
-          clients.forEach(e => {
-            const _ipAddress = e.getDataValue('ip_addr')
-            that.clients[_ipAddress] = ws
-          })
-
+          // const clients = await authController.loadAll().catch(e => { throw e })
+          // clients.forEach(e => {
+          //   const _ipAddress = e.getDataValue('ip_addr')
+          //   that.clients.set(_ipAddress, ws)
+          // })
+          that.clients.set(ipAddress, ws)
           wss.emit('connection', ws, request)
         })
       })
@@ -58,21 +59,33 @@ class WSController {
          * define events here
          */
         ws.on('error', console.error)
-        ws.on('close', async function () { delete that.clients[ipAddress] })
-        ws.on('message', function (message) { console.log(`ws.on message : ${message}`)})
+        ws.on('close', async function () { 
+          delete that.clients[ipAddress] 
+          await authController.destroy(ipAddress).catch(e => { throw e })
+        })
+
+        ws.on('message', function (message) { 
+          const parsed = JSON.parse(message)
+          if(parsed.action === 'ping') return sendPong(parsed.senderId)
+        })
+
+        /**
+         * pong connection
+         * @param {*} senderId 
+         */
+        const sendPong = (senderId=null) => {
+          that.clients.forEach((_ws, value) => {
+            if (value === senderId) _ws.send(JSON.stringify({ senderId: senderId, action: 'pong', payload: { message: `connected ${new Date()}` } }))
+          })
+        }
 
         /**
          * send info, 
          * for new joiner
          */
-        for (const key in that.clients) {
-          if (Object.hasOwnProperty.call(that.clients, key)) {
-            const _ws = that.clients[key]
-            if (key !== ipAddress) {
-              _ws.send(JSON.stringify({ senderId: ipAddress, action: 'join', payload: { message: `${ipAddress} has joined` } }))
-            }
-          }
-        }
+        that.clients.forEach((_ws, value) => {
+          if (value === ipAddress) _ws.send(JSON.stringify({ senderId: ipAddress, action: 'join', payload: { message: `${ipAddress} has joined` } }))
+        })
       })
     } catch (error) {
       throw error

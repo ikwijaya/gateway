@@ -91,7 +91,8 @@ app.post(
       const object = { senderId: ipAddress, action: 'online', payload: {} }
 
       const clients = wsController.get();
-      clients[ipAddress].send(JSON.stringify(object))
+      const ws = clients.get(ipAddress);
+      ws.send(JSON.stringify(object));
 
       delete payload.payload.ws;
       res.status(httpStatus.OK).send(payload);
@@ -111,7 +112,8 @@ app.post(
       const object = { senderId: ipAddress, action: 'offline', payload: {} }
 
       const clients = wsController.get();
-      clients[ipAddress].send(JSON.stringify(object))
+      const ws = clients.get(ipAddress);
+      ws.send(JSON.stringify(object));
 
       res.status(httpStatus.OK).send({ messages: ['OK'], payload: null });
     } catch (err) {

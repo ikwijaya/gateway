@@ -134,14 +134,14 @@ class AuthController {
    * @param {*} ipAddr 
    * @returns 
    */
-  async destroy(agentId = null, ipAddr = null) {
+  async destroy(ipAddr = null) {
     const trx = await sequelize.transaction().catch(e => { throw (e) })
     try {
-      if (!agentId || !ipAddr) throw { rawMessages: ["Error cannot found IP Address or Agent ID"] }
+      if (!ipAddr) throw { rawMessages: ["Error cannot found IP Address"] }
       await models.session
         .update({ record_status: 'N' },
           {
-            where: { user_id: agentId, ip_addr: ipAddr, record_status: 'A' },
+            where: { ip_addr: ipAddr, record_status: 'A' },
             transaction: trx
           })
         .catch((e) => {
@@ -149,7 +149,7 @@ class AuthController {
         });
 
       await trx.commit();
-      return { messages: ["OK"], payload: { ipAddr, agentId } }
+      return { messages: ["OK"], payload: { ipAddr } }
     } catch (error) {
       await trx.rollback();
       throw error;
